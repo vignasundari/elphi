@@ -1,35 +1,46 @@
+import { useState, useEffect } from 'react';
 import NoteCard from './NoteCard';
 
-const NotesSection = () => {
-  
-   const notes = [
-  {
-    id: 1,
-    title: "Comprehensive Notes - Part 1",
-    fileUrl: "/uploads/notes1.pdf",   // PDF file
-    thumbnail: "/uploads/notes1_thumb.jpg", // preview of page 1
-    rating: 4.7,
-    count: 140,
-    submitter: "StudiousStudent"
-  },
-  {
-    id: 2,
-    title: "Comprehensive Notes - Part 2",
-    fileUrl: "/uploads/notes2.pdf",
-    thumbnail: "/uploads/notes2_thumb.jpg",
-    rating: 3.7,
-    count: 115,
-    submitter: "KnowledgeSeeker"
-  }
-];
+const API_BASE = 'http://localhost:5000';
 
+const NotesSection = ({ subject = 'Core Subject 1A' }) => {
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchNotes = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/notes?subject=${encodeURIComponent(subject)}`);
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setNotes(data.notes || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch notes:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchNotes();
+    return () => { cancelled = true; };
+  }, [subject]);
 
   return (
     <div>
-      <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Handwritten Notes & Materials</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
-        {notes.map(note => <NoteCard key={note.id} note={note} />)}
-      </div>
+      <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
+        Handwritten Notes & Materials
+      </h2>
+      {loading ? (
+        <p style={{ color: 'var(--text-secondary)' }}>Loading notes...</p>
+      ) : notes.length === 0 ? (
+        <p style={{ color: 'var(--text-secondary)' }}>No notes uploaded for this subject yet.</p>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
+          {notes.map(note => <NoteCard key={note._id} note={note} />)}
+        </div>
+      )}
     </div>
   );
 };

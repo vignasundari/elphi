@@ -1,5 +1,7 @@
-import { FaDownload, FaStar } from "react-icons/fa";
+import { FaDownload, FaStar, FaFileAlt } from "react-icons/fa";
 import StarRating from "./StarRating";
+
+const API_BASE = "http://localhost:5000";
 
 const styles = {
   downloadButton: {
@@ -16,10 +18,16 @@ const styles = {
     transition: "opacity 0.2s",
     cursor: "pointer",
     border: "none",
+    textDecoration: "none",
   },
 };
 
 const NoteCard = ({ note }) => {
+  // Build the full URL for backend-served files
+  const fullFileUrl = note.fileUrl?.startsWith('http')
+    ? note.fileUrl
+    : `${API_BASE}${note.fileUrl}`;
+
   return (
     <div
       className="card"
@@ -33,13 +41,27 @@ const NoteCard = ({ note }) => {
         background: "var(--card-bg, #fff)",
       }}
     >
-      {/* 🔹 Thumbnail (click to open PDF) */}
-      <a href={note.fileUrl} target="_blank" rel="noopener noreferrer">
-        <img
-          src={note.thumbnail}
-          alt={note.title}
-          style={{ width: "100%", height: "150px", objectFit: "cover", cursor: "pointer" }}
-        />
+      {/* Thumbnail or placeholder */}
+      <a href={fullFileUrl} target="_blank" rel="noopener noreferrer">
+        {note.thumbnail ? (
+          <img
+            src={note.thumbnail}
+            alt={note.title}
+            style={{ width: "100%", height: "150px", objectFit: "cover", cursor: "pointer" }}
+          />
+        ) : (
+          <div style={{
+            width: "100%",
+            height: "150px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--bg-tertiary)",
+            cursor: "pointer",
+          }}>
+            <FaFileAlt size={48} color="var(--accent-purple)" />
+          </div>
+        )}
       </a>
 
       <div style={{ padding: "16px", display: "flex", flexDirection: "column", flexGrow: 1 }}>
@@ -48,20 +70,24 @@ const NoteCard = ({ note }) => {
           {note.title}
         </h3>
 
-        {/* Rating (average + count) */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--accent-orange)" }}>
-            <FaStar />
-            <span style={{ fontWeight: 600 }}>{note.rating.toFixed(1)}</span>
+        {/* Rating (only if available) */}
+        {note.rating != null && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--accent-orange)" }}>
+              <FaStar />
+              <span style={{ fontWeight: 600 }}>{Number(note.rating).toFixed(1)}</span>
+            </div>
+            {note.count != null && (
+              <span style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
+                ({note.count} ratings)
+              </span>
+            )}
           </div>
-          <span style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-            ({note.count} ratings)
-          </span>
-        </div>
+        )}
 
         {/* Submitter */}
         <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "16px" }}>
-          Submitted by: {note.submitter}
+          Submitted by: {note.uploaderName || note.submitter || "Anonymous"}
         </p>
 
         {/* Interactive Star Rating */}
@@ -69,13 +95,13 @@ const NoteCard = ({ note }) => {
           <StarRating
             isInteractive={true}
             subject="notes"
-            topic={note.id}
+            topic={note._id || note.id}
           />
         </div>
 
         {/* Download button */}
         <a
-          href={note.fileUrl}
+          href={fullFileUrl}
           download
           style={{ ...styles.downloadButton, marginTop: "auto" }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}

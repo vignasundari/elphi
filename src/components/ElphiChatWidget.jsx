@@ -32,22 +32,19 @@ function ElphiChatWidget() {
     setLoading(true);
 
     try {
-      const payload = {
-        contents: [{ role: 'user', parts: [{ text: userMessage.text }] }],
-      };
-
-      const apiKey = "AIzaSyBB152D1cfIb5MVc8prtyeVnBOpt6v4APk"; // Put your Gemini API key here
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-      const response = await fetch(apiUrl, {
+      const response = await fetch('http://localhost:5000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ message: userMessage.text }),
       });
 
       const result = await response.json();
-      const reply =
-        result?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Sorry, I couldn't get a response.";
+
+      if (!response.ok) {
+        throw new Error(result.message || 'AI service error');
+      }
+
+      const reply = result.reply || "Sorry, I couldn't get a response.";
 
       setMessages((prev) => [...prev, { sender: 'ai', text: reply }]);
     } catch (err) {

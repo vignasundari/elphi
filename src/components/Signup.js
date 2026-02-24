@@ -18,7 +18,7 @@ const [name, setName] = useState("");
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
 const [confirmPassword, setConfirmPassword] = useState("");
-const handleSubmit = (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
   if (!name || !email || !password || !confirmPassword) {
@@ -31,18 +31,29 @@ const handleSubmit = (e) => {
     return;
   }
 
-  const userData = {
-    name,
-    email
-  };
+  try {
+    const res = await fetch("http://localhost:5000/signup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ name, email, password })
+    });
 
-  localStorage.setItem("elphiUser", JSON.stringify(userData));
+    const data = await res.json();
 
-  if (setIsLoggedIn) {
-    setIsLoggedIn(true);
+    if (!res.ok) {
+      alert(data.message);
+      return;
+    }
+
+    alert("Signup successful! Please login.");
+    navigate("/login");
+
+  } catch (error) {
+    alert("Server error");
   }
-
-navigate("/dashboard");};
+};
     // Apply dark mode class to body on state change
     useEffect(() => {
         if (isDarkMode) {

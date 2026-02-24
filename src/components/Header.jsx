@@ -31,9 +31,12 @@ const Header = ({ setIsLoggedIn }) => {
     setStreak(storedStreak);
   }, []);
 
+  if (!user) return null;
+
   const handleLogout = () => {
   localStorage.removeItem("elphiUser");
-  setIsLoggedIn(false);   // IMPORTANT
+  localStorage.removeItem("isLoggedIn"); // add this
+  setIsLoggedIn(false);
   navigate("/", { replace: true });
 };
 

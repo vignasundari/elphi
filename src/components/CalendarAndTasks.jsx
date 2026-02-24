@@ -1,5 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+
+const API_BASE = 'http://localhost:5000';
+
+// ===== Helper: save tasks to both localStorage and backend =====
+const saveTasks = (storageKey, dateKey, tasks) => {
+  localStorage.setItem(storageKey, JSON.stringify(tasks));
+  const user = JSON.parse(localStorage.getItem('elphiUser'));
+  if (user?.email) {
+    fetch(`${API_BASE}/api/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, dateKey, tasks }),
+    }).catch(err => console.error('Failed to sync tasks to DB:', err));
+  }
+};
 
 // ===== TaskCell =====
 const STATUS_ORDER = ['Not Started', 'In Progress', 'Done'];
@@ -7,13 +22,15 @@ const getNextStatus = (current) =>
   STATUS_ORDER[(STATUS_ORDER.indexOf(current) + 1) % STATUS_ORDER.length];
 
 const TaskCell = ({ date, selectedDate, setSelectedDate, tasksState, setTasksState }) => {
-  const storageKey = `tasks-${date.toDateString()}`;
+  const dateKey = date.toDateString();
+  const storageKey = `tasks-${dateKey}`;
   const [showForm, setShowForm] = useState(false);
   const [taskName, setTaskName] = useState('');
 
   const tasks = tasksState[storageKey] || [];
 
   useEffect(() => {
+    // Load from localStorage first (fast cache)
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       try {
@@ -28,7 +45,7 @@ const TaskCell = ({ date, selectedDate, setSelectedDate, tasksState, setTasksSta
     if (!taskName.trim()) return;
     const newTasks = [...tasks, { name: taskName.trim(), status: 'Not Started' }];
     setTasksState(prev => ({ ...prev, [storageKey]: newTasks }));
-    localStorage.setItem(storageKey, JSON.stringify(newTasks));
+    saveTasks(storageKey, dateKey, newTasks);
     setTaskName('');
     setShowForm(false);
   };
@@ -37,7 +54,7 @@ const TaskCell = ({ date, selectedDate, setSelectedDate, tasksState, setTasksSta
     const newTasks = [...tasks];
     newTasks[index].status = getNextStatus(newTasks[index].status);
     setTasksState(prev => ({ ...prev, [storageKey]: newTasks }));
-    localStorage.setItem(storageKey, JSON.stringify(newTasks));
+    saveTasks(storageKey, dateKey, newTasks);
   };
 
   const isSelected =
@@ -198,6 +215,34 @@ const CalendarAndTasks = () => {
   const [showPanel, setShowPanel] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksState, setTasksState] = useState({});
+
+  // Load tasks from backend on mount
+  const loadTasksFromDB = useCallback(async () => {
+    const user = JSON.parse(localStorage.getItem('elphiUser'));
+    if (!user?.email) return;
+    try {
+      const now = new Date();
+      const res = await fetch(
+        `${API_BASE}/api/tasks/month?email=${encodeURIComponent(user.email)}&year=${now.getFullYear()}&month=${now.getMonth()}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.tasks && Object.keys(data.tasks).length > 0) {
+          setTasksState(prev => ({ ...prev, ...data.tasks }));
+          // Also update localStorage cache
+          Object.entries(data.tasks).forEach(([key, tasks]) => {
+            localStorage.setItem(key, JSON.stringify(tasks));
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load tasks from DB:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTasksFromDB();
+  }, [loadTasksFromDB]);
 
   const togglePanel = () => setShowPanel(prev => !prev);
 

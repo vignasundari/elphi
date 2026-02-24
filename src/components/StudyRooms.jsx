@@ -1,30 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FaExpand } from "react-icons/fa";
-import firebase from "firebase/compat/app";
-import "firebase/compat/firestore";
 
-// 🔑 Your Firebase config
-const firebaseConfig = {
-    apiKey: "AIzaSyBmWTkPntFxMqb11_CJ2O5tMJPgMt_UMY8",
-  authDomain: "elphidaa-6651f.firebaseapp.com",
-  databaseURL: "https://elphidaa-6651f-default-rtdb.firebaseio.com",
-  projectId: "elphidaa-6651f",
-  storageBucket: "elphidaa-6651f.firebasestorage.app",
-  messagingSenderId: "361610666174",
-  appId: "1:361610666174:web:e7e07accfc09f88842feef",
-  measurementId: "G-5JD796KE23"
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const firestore = firebase.firestore();
-
-const servers = {
-  iceServers: [
-    { urls: ["stun:stun.l.google.com:19302"] }, // Free STUN server
-  ],
-};
+const API_BASE = "http://localhost:5000";
 
 const StudyRooms = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -32,131 +9,45 @@ const StudyRooms = () => {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
 
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
-  const pcRef = useRef(null);
+  const pollingRef = useRef(null);
 
-  // 🔹 CHAT LISTENER
-  useEffect(() => {
+  // 🔹 FETCH MESSAGES (polling)
+  const fetchMessages = useCallback(async () => {
     if (!roomId) return;
-    const unsub = firestore
-      .collection("rooms")
-      .doc(roomId)
-      .collection("messages")
-      .orderBy("createdAt")
-      .onSnapshot((snap) => {
-        const msgs = snap.docs.map((doc) => doc.data());
-        setMessages(msgs);
-      });
-    return () => unsub();
+    try {
+      const res = await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(roomId)}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch messages:", err);
+    }
   }, [roomId]);
+
+  // Poll for new messages every 3 seconds
+  useEffect(() => {
+    fetchMessages();
+    pollingRef.current = setInterval(fetchMessages, 3000);
+    return () => clearInterval(pollingRef.current);
+  }, [fetchMessages]);
 
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMsg.trim()) return;
 
-    await firestore.collection("rooms").doc(roomId).collection("messages").add({
-      text: newMsg,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    setNewMsg("");
-  };
-
-  // 🔹 VIDEO CALL LOGIC
-  const joinRoom = async () => {
-    pcRef.current = new RTCPeerConnection(servers);
-
-    // local media
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    stream.getTracks().forEach((track) => pcRef.current.addTrack(track, stream));
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
+    const user = JSON.parse(localStorage.getItem("elphiUser"));
+    try {
+      await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(roomId)}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newMsg, sender: user?.name || "Anonymous" }),
+      });
+      setNewMsg("");
+      fetchMessages(); // refresh immediately after sending
+    } catch (err) {
+      console.error("Failed to send message:", err);
     }
-
-    // remote stream
-    const remoteStream = new MediaStream();
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteStream;
-    }
-    pcRef.current.ontrack = (event) => {
-      event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
-      });
-    };
-
-    // Firestore room doc
-    const roomRef = firestore.collection("rooms").doc(roomId);
-    const roomSnapshot = await roomRef.get();
-
-    if (!roomSnapshot.exists) {
-      // --- Create Offer ---
-      const offer = await pcRef.current.createOffer();
-      await pcRef.current.setLocalDescription(offer);
-
-      const roomWithOffer = { offer: { type: offer.type, sdp: offer.sdp } };
-      await roomRef.set(roomWithOffer);
-
-      // listen for answer
-      roomRef.onSnapshot(async (snapshot) => {
-        const data = snapshot.data();
-        if (!pcRef.current.currentRemoteDescription && data?.answer) {
-          const answerDesc = new RTCSessionDescription(data.answer);
-          await pcRef.current.setRemoteDescription(answerDesc);
-        }
-      });
-
-      // ICE candidates
-      const callerCandidates = roomRef.collection("callerCandidates");
-      pcRef.current.onicecandidate = (event) => {
-        if (event.candidate) {
-          callerCandidates.add(event.candidate.toJSON());
-        }
-      };
-    } else {
-      // --- Join as Answerer ---
-      const data = roomSnapshot.data();
-      const offerDesc = new RTCSessionDescription(data.offer);
-      await pcRef.current.setRemoteDescription(offerDesc);
-
-      const answer = await pcRef.current.createAnswer();
-      await pcRef.current.setLocalDescription(answer);
-
-      const roomWithAnswer = {
-        answer: { type: answer.type, sdp: answer.sdp },
-      };
-      await roomRef.update(roomWithAnswer);
-
-      // ICE candidates
-      const calleeCandidates = roomRef.collection("calleeCandidates");
-      pcRef.current.onicecandidate = (event) => {
-        if (event.candidate) {
-          calleeCandidates.add(event.candidate.toJSON());
-        }
-      };
-
-      // Listen for caller candidates
-      roomRef.collection("callerCandidates").onSnapshot((snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
-          if (change.type === "added") {
-            const candidate = new RTCIceCandidate(change.doc.data());
-            await pcRef.current.addIceCandidate(candidate);
-          }
-        });
-      });
-    }
-
-    // Listen for callee candidates
-    roomRef.collection("calleeCandidates").onSnapshot((snapshot) => {
-      snapshot.docChanges().forEach(async (change) => {
-        if (change.type === "added") {
-          const candidate = new RTCIceCandidate(change.doc.data());
-          await pcRef.current.addIceCandidate(candidate);
-        }
-      });
-    });
   };
 
   // ✅ Small Card UI
@@ -181,7 +72,7 @@ const StudyRooms = () => {
 
       <div style={{ background: "#111", color: "#fff", padding: "8px", height: "180px", overflowY: "auto" }}>
         {messages.map((msg, i) => (
-          <p key={i}>{msg.text}</p>
+          <p key={msg._id || i}><strong>{msg.sender}:</strong> {msg.text}</p>
         ))}
       </div>
 
@@ -198,11 +89,18 @@ const StudyRooms = () => {
       </form>
 
       <button
-        onClick={() => {
-          setIsFullscreen(true);
-          joinRoom(); // start WebRTC
+        onClick={() => setIsFullscreen(true)}
+        style={{
+          position: "absolute",
+          top: "8px",
+          right: "8px",
+          padding: "8px",
+          background: "var(--bg-tertiary)",
+          border: "none",
+          borderRadius: "50%",
+          cursor: "pointer",
+          color: "var(--text-secondary)",
         }}
-        className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full shadow hover:bg-gray-300"
         title="Open Fullscreen Study Room"
       >
         <FaExpand size={14} />
@@ -212,27 +110,28 @@ const StudyRooms = () => {
 
   // ✅ Fullscreen UI
   const FullscreenRoom = () => (
-    <div className="fixed inset-0 z-50 bg-white flex">
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 50,
+      background: "var(--bg-primary)", display: "flex", color: "var(--text-primary)"
+    }}>
       {/* Exit */}
       <button
         onClick={() => setIsFullscreen(false)}
-        className="absolute top-4 right-4 p-3 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600"
+        style={{
+          position: "absolute", top: "16px", right: "16px", padding: "12px",
+          background: "#ef4444", color: "#fff", borderRadius: "50%",
+          border: "none", cursor: "pointer", fontSize: "16px", zIndex: 51
+        }}
       >
         ✕
       </button>
 
-      {/* Video */}
-      <div style={{ flex: 2, display: "flex", flexDirection: "column" }}>
-        <video ref={localVideoRef} autoPlay playsInline muted style={{ flex: 1, background: "#000" }} />
-        <video ref={remoteVideoRef} autoPlay playsInline style={{ flex: 1, background: "#000" }} />
-      </div>
-
-      {/* Chat */}
-      <div style={{ flex: 1, borderLeft: "1px solid #ccc", padding: "12px", display: "flex", flexDirection: "column" }}>
+      {/* Chat (fullscreen) */}
+      <div style={{ flex: 1, borderLeft: "1px solid var(--border-color)", padding: "12px", display: "flex", flexDirection: "column" }}>
         <h3>Room: {roomId}</h3>
         <div style={{ flex: 1, overflowY: "auto" }}>
           {messages.map((msg, i) => (
-            <p key={i}>{msg.text}</p>
+            <p key={msg._id || i}><strong>{msg.sender}:</strong> {msg.text}</p>
           ))}
         </div>
         <form onSubmit={sendMessage} style={{ display: "flex", gap: "8px" }}>

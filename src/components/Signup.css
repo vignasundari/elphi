@@ -1,5 +1,13 @@
 /* src/components/Signup.css */
-
+.login-section
+{
+      margin-top: 20px;
+  text-align: center;
+  transform: translateX(10px);
+}
+body.no-scroll {
+  overflow: hidden;
+}
 /* Define CSS Variables for Colors (Same as Login.css for consistency) */
 :root {
     /* Light Mode Defaults */
@@ -96,12 +104,14 @@ body.dark-mode {
 
 /* General page wrapper (renamed for signup) */
 .signup-page-wrapper {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+      min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
+    position: relative;
+    width: 100vw;
+    height: auto;
     background: radial-gradient(circle at top left, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, var(--bg-gradient-3) 75%, var(--bg-gradient-4) 100%);
     background-size: 300% 300%;
     animation: gradientBG 20s ease infinite alternate;
@@ -218,8 +228,9 @@ body {
 /* Book opening animation wrapper (renamed) */
 .signup-form-book-wrapper {
     position: relative;
-    width: 400px;
-    height: auto;
+    width: 550px;
+    min-height: auto;
+    max-width: 90vw; 
     perspective: 1200px;
     transform-style: preserve-3d;
 
@@ -233,9 +244,16 @@ body {
     transform: rotateY(0deg);
     opacity: 1;
 }
-
+.signup-form h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
 /* Signup form box - uses variables */
 .signup-form {
+     padding: 50px 45px;        /* More breathing space */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;  
     background-color: var(--form-bg-color);
     backdrop-filter: blur(10px) saturate(150%);
     -webkit-backdrop-filter: blur(10px) saturate(150%);

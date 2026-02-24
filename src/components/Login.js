@@ -13,7 +13,7 @@ const [password, setPassword] = useState('');
 const navigate = useNavigate();
     const sparkleContainerRef = useRef(null);
     const loginFormWrapperRef = useRef(null);
-    const handleSubmit = (e) => {
+   const handleSubmit = async (e) => {
   e.preventDefault();
 
   if (!email || !password) {
@@ -21,15 +21,33 @@ const navigate = useNavigate();
     return;
   }
 
-  const userData = {
-    name: email.split("@")[0],
-    email: email
-  };
+  try {
+    const res = await fetch("http://localhost:5000/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
 
-  localStorage.setItem("elphiUser", JSON.stringify(userData));
+    const data = await res.json();
 
-  setIsLoggedIn(true);   // 🔥 IMPORTANT
-navigate("/dashboard");};
+    if (!res.ok) {
+      alert(data.message);
+      return;
+    }
+
+    // 🔥 Save session in localStorage
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("elphiUser", JSON.stringify(data.user));
+
+    setIsLoggedIn(true);
+    navigate("/dashboard");
+
+  } catch (error) {
+    alert("Server error");
+  }
+};
     // New state for dark mode
     const [isDarkMode, setIsDarkMode] = useState(
         () => localStorage.getItem('theme') === 'dark' // Initialize from localStorage

@@ -18,14 +18,16 @@ import "./styles/global.css";
 
 /* ===================== DASHBOARD LAYOUT ===================== */
 function DashboardLayout({ setIsLoggedIn }) {
+  const [activeSubject, setActiveSubject] = useState('Core Subject 1A');
+
   return (
     <>
       <Header setIsLoggedIn={setIsLoggedIn} />
       <div className="app-container">
-        <SemestersSidebar />
+        <SemestersSidebar setActiveSubject={setActiveSubject} />
         <main className="main-content">
-          <VideoSection />
-          <NotesSection />
+          <VideoSection subject={activeSubject} />
+          <NotesSection subject={activeSubject} />
         </main>
         <aside className="right-sidebar">
           <CalendarAndTasks />
