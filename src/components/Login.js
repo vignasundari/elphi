@@ -41,6 +41,17 @@ const navigate = useNavigate();
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("elphiUser", JSON.stringify(data.user));
 
+    // 🔥 Update streak on login
+    try {
+      await fetch("http://localhost:5000/api/streak/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.user.email })
+      });
+    } catch (err) {
+      console.error("Failed to update streak:", err);
+    }
+
     setIsLoggedIn(true);
     navigate("/dashboard");
 

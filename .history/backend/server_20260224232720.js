@@ -1,4 +1,3 @@
-require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
@@ -7,12 +6,19 @@ const fetch = require("node-fetch");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-
+const dot = require("dotenv").config();
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
+const response = await fetch(
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }
+);
 /* ================= FILE UPLOAD SETUP ================= */
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
@@ -29,10 +35,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } }); // 20MB max
 
 /* ================= MONGODB CONNECTION ================= */
-mongoose.connect("mongodb+srv://Amirthaa:elphida03@elphida.1e5pyx4.mongodb.net/?appName=Elphida", {
-  tls: true,
-  tlsAllowInvalidCertificates: true,
-})
+mongoose.connect("mongodb+srv://Amirthaa:elphida03@elphida.1e5pyx4.mongodb.net/?appName=Elphida")
 .then(() => console.log("MongoDB Connected"))
 .catch(err => console.log(err));
 
@@ -57,15 +60,6 @@ const taskSchema = new mongoose.Schema({
 taskSchema.index({ email: 1, dateKey: 1 }, { unique: true });
 
 const Task = mongoose.model("Task", taskSchema);
-
-/* ================= STREAK SCHEMA ================= */
-const streakSchema = new mongoose.Schema({
-  email: { type: String, unique: true, required: true },
-  currentStreak: { type: Number, default: 1 },
-  lastLoginDate: { type: String, required: true }
-});
-
-const Streak = mongoose.model("Streak", streakSchema);
 
 /* ================= STUDY ROOM MESSAGE SCHEMA ================= */
 const roomMessageSchema = new mongoose.Schema({
@@ -150,15 +144,10 @@ app.post("/login", async (req, res) => {
 });
 
 /* ================= AI CHAT PROXY ================= */
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_KEY = "AIzaSyBB152D1cfIb5MVc8prtyeVnBOpt6v4APk";
 
 app.post("/api/chat", async (req, res) => {
   try {
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not set in .env");
-      return res.status(500).json({ message: "AI service not configured" });
-    }
-
     const { message } = req.body;
     if (!message) {
       return res.status(400).json({ message: "Message is required" });
@@ -192,62 +181,6 @@ app.post("/api/chat", async (req, res) => {
   } catch (error) {
     console.error("Chat proxy error:", error);
     res.status(500).json({ message: "Error connecting to AI service" });
-  }
-});
-
-/* ================= STREAK ENDPOINTS ================= */
-
-// POST - update streak on login
-app.post("/api/streak/login", async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "email required" });
-
-    const today = new Date().toISOString().split("T")[0];
-    const existing = await Streak.findOne({ email });
-
-    if (!existing) {
-      const streak = new Streak({ email, currentStreak: 1, lastLoginDate: today });
-      await streak.save();
-      return res.json({ currentStreak: 1 });
-    }
-
-    if (existing.lastLoginDate === today) {
-      return res.json({ currentStreak: existing.currentStreak });
-    }
-
-    const lastDate = new Date(existing.lastLoginDate);
-    const todayDate = new Date(today);
-    const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
-
-    let newStreak;
-    if (diffDays === 1) {
-      newStreak = existing.currentStreak + 1;
-    } else {
-      newStreak = 1;
-    }
-
-    existing.currentStreak = newStreak;
-    existing.lastLoginDate = today;
-    await existing.save();
-
-    return res.json({ currentStreak: newStreak });
-  } catch (error) {
-    console.error("Streak update error:", error);
-    res.status(500).json({ message: "Error updating streak" });
-  }
-});
-
-// GET - fetch current streak for a user
-app.get("/api/streak", async (req, res) => {
-  try {
-    const { email } = req.query;
-    if (!email) return res.status(400).json({ message: "email required" });
-    const streak = await Streak.findOne({ email });
-    res.json({ currentStreak: streak?.currentStreak || 0 });
-  } catch (error) {
-    console.error("Get streak error:", error);
-    res.status(500).json({ message: "Error fetching streak" });
   }
 });
 
@@ -309,31 +242,6 @@ app.post("/api/tasks", async (req, res) => {
   } catch (error) {
     console.error("Save tasks error:", error);
     res.status(500).json({ message: "Error saving tasks" });
-  }
-});
-
-// GET upcoming tasks for a user (today and future)
-app.get("/api/tasks/upcoming", async (req, res) => {
-  try {
-    const { email } = req.query;
-    if (!email) return res.status(400).json({ message: "email required" });
-
-    const docs = await Task.find({ email });
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const upcoming = docs
-      .filter(doc => {
-        const d = new Date(doc.dateKey);
-        return d >= today;
-      })
-      .sort((a, b) => new Date(a.dateKey) - new Date(b.dateKey))
-      .slice(0, 20);
-
-    res.json({ upcoming });
-  } catch (error) {
-    console.error("Get upcoming tasks error:", error);
-    res.status(500).json({ message: "Error fetching upcoming tasks" });
   }
 });
 

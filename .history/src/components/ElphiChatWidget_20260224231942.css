@@ -29,10 +29,10 @@
   position: absolute;
   right: 0;
   bottom: 70px; /* leaves space for the button */
-  width: min(92vw, 420px);
-  max-height: 78vh;
+  width: min(88vw, 360px);
+  max-height: 70vh;
   background: #fff;
-  color: #000;
+  color: #111;
   border-radius: 18px;
   box-shadow: 0 18px 45px rgba(0,0,0,.22);
   overflow: hidden;
@@ -73,18 +73,18 @@
   display: grid;
   place-items: center;
 }
-.elphi-title .name { font-weight: 700; line-height: 1; color: #000; }
-.elphi-title .sub { font-size: 12px; color: #444; line-height: 1.1; }
+.elphi-title .name { font-weight: 700; line-height: 1; }
+.elphi-title .sub { font-size: 12px; color: #6b7280; line-height: 1.1; }
 
 /* Messages area */
 .elphi-messages {
   padding: 12px;
-  height: 52vh;
+  height: 44vh;
   overflow: auto;
 }
 .elphi-empty {
   font-size: 13px;
-  color: #333;
+  color: #6b7280;
   text-align: center;
   padding: 20px 8px;
 }
@@ -111,7 +111,7 @@
 }
 .elphi-msg.ai .bubble {
   background: #f3f4f6;
-  color: #000;
+  color: #111827;
   border-bottom-left-radius: 4px;
 }
 
@@ -149,8 +149,6 @@
   overflow-y: auto;
   font-size: 14px;
   outline: none;
-  color: #000;
-  background: #fff;
 }
 .elphi-textarea:focus { border-color: #c7d2fe; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
 
@@ -183,24 +181,24 @@ body.dark-mode .elphi-textarea { background:#0b0f17; color:#e5e7eb; border-color
 .icon-btn {
   border: none;
   background: transparent;
-  color: #555;
+  color: #6b7280;
   cursor: pointer;
   padding: 2px;
   transition: color 0.2s ease;
 }
 
 .icon-btn:hover {
-  color: #000;
+  color: #111827;
 }
 /* --- Panel show animation --- */
 .elphi-panel {
   position: absolute;
   right: 0;
   bottom: 70px;
-  width: min(92vw, 420px);
-  max-height: 78vh;
+  width: min(88vw, 360px);
+  max-height: 70vh;
   background: #fff;
-  color: #000;
+  color: #111;
   border-radius: 18px;
   box-shadow: 0 18px 45px rgba(0,0,0,.22);
   overflow: hidden;
@@ -231,7 +229,7 @@ body.dark-mode .elphi-textarea { background:#0b0f17; color:#e5e7eb; border-color
 }
 .elphi-msg.ai .bubble {
   background: #f3f4f6;
-  color: #000;
+  color: #111827;
   border-bottom-left-radius: 4px;
   animation: slideInLeft 0.35s ease both;
 }

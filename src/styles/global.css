@@ -41,11 +41,31 @@ body {
 }
 
 .sidebar,
-.main-content,
-.right-sidebar {
+.main-content {
   height: calc(100vh - 80px);
   overflow-y: auto;
   padding-bottom: 24px;
+}
+
+.right-sidebar {
+  height: calc(100vh - 80px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: 0;
+}
+
+/* CalendarAndTasks: stays in place, never shrinks */
+.right-sidebar > :first-child {
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+/* StudyRooms: fills remaining space */
+.right-sidebar > :last-child {
+  flex: 1;
+  min-height: 0;
 }
 
 .sidebar::-webkit-scrollbar,

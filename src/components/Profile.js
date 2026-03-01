@@ -42,6 +42,18 @@ const Profile = () => {
     }
   }, []);
 
+  const fetchStreak = useCallback(async (email) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/streak?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setStreak(data.currentStreak || 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch streak:", err);
+    }
+  }, []);
+
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("elphiUser"));
 
@@ -51,37 +63,9 @@ const Profile = () => {
     }
 
     setUser(storedUser);
-
-    const today = new Date();
-    const todayStr = today.toDateString();
-
-    const lastVisitStr = localStorage.getItem("lastVisit");
-    let currentStreak = parseInt(localStorage.getItem("elphiStreak")) || 0;
-
-    if (!lastVisitStr) {
-      currentStreak = 1;
-      localStorage.setItem("elphiStreak", 1);
-      localStorage.setItem("lastVisit", todayStr);
-    } else {
-      const lastVisit = new Date(lastVisitStr);
-      const diffDays = Math.floor(
-        (today - lastVisit) / (1000 * 60 * 60 * 24)
-      );
-
-      if (diffDays === 1) {
-        currentStreak += 1;
-        localStorage.setItem("elphiStreak", currentStreak);
-        localStorage.setItem("lastVisit", todayStr);
-      } else if (diffDays > 1) {
-        currentStreak = 1;
-        localStorage.setItem("elphiStreak", 1);
-        localStorage.setItem("lastVisit", todayStr);
-      }
-    }
-
-    setStreak(currentStreak);
+    fetchStreak(storedUser.email);
     fetchUserNotes(storedUser.email);
-  }, [fetchUserNotes]);
+  }, [fetchUserNotes, fetchStreak]);
 
   const handleUpload = async (e) => {
     e.preventDefault();

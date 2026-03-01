@@ -49,6 +49,7 @@ function ElphiChatWidget() {
         throw new Error(result.message || 'AI error');
       }
 
+      // result.reply comes from your Express backend
       setMessages((prev) => [
         ...prev,
         { sender: 'ai', text: result.reply },
@@ -57,7 +58,7 @@ function ElphiChatWidget() {
       console.error('Chat error:', err);
       setMessages((prev) => [
         ...prev,
-        { sender: 'ai', text: '❌ Error connecting to AI.' },
+        { sender: 'ai', text: '❌ Error connecting to AI. Make sure the backend is running.' },
       ]);
     } finally {
       setLoading(false);

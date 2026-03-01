@@ -15,21 +15,16 @@ function ElphiChatWidget() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  useEffect(() => { scrollToBottom(); }, [messages, open]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, open]);
-
-  useEffect(() => {
-    const onEsc = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
+    const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
     window.addEventListener('keydown', onEsc);
     return () => window.removeEventListener('keydown', onEsc);
   }, []);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (input.trim() === '') return;
 
     const userMessage = { sender: 'user', text: input };
     setMessages((prev) => [...prev, userMessage]);
@@ -37,24 +32,26 @@ function ElphiChatWidget() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/chat', {
+      const payload = {
+        contents: [{ role: 'user', parts: [{ text: userMessage.text }] }],
+      };
+
+      const apiKey = "AIzaSyBmWTkPntFxMqb11_CJ2O5tMJPgMt_UMY8"; // Put your Gemini API key here
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage.text }),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
+      const reply =
+        result?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "Sorry, I couldn't get a response.";
 
-      if (!response.ok) {
-        throw new Error(result.message || 'AI error');
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        { sender: 'ai', text: result.reply },
-      ]);
+      setMessages((prev) => [...prev, { sender: 'ai', text: reply }]);
     } catch (err) {
-      console.error('Chat error:', err);
+      console.error(err);
       setMessages((prev) => [
         ...prev,
         { sender: 'ai', text: '❌ Error connecting to AI.' },
@@ -71,6 +68,7 @@ function ElphiChatWidget() {
     }
   };
 
+  // --- Copy message text ---
   const copyMessage = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -80,23 +78,46 @@ function ElphiChatWidget() {
     }
   };
 
+  // --- Edit user message ---
   const editMessage = (index) => {
     const msg = messages[index];
     if (msg.sender !== 'user') return;
     setInput(msg.text);
-    setMessages((prev) => prev.filter((_, i) => i !== index));
+    setMessages((prev) => prev.filter((_, i) => i !== index)); // remove old version
   };
 
   return (
     <div className="elphi-widget">
+      {/* Toggle Button */}
       <button
         className={`elphi-toggle ${open ? 'open' : ''}`}
         onClick={toggleOpen}
         aria-expanded={open}
+        aria-label={open ? 'Close Elphi chat' : 'Open Elphi chat'}
       >
         <i className={`bi ${open ? 'bi-x-lg' : 'bi-chat-dots-fill'}`} />
       </button>
 
+      {/* Animated Effects */}
+      {open && (
+        <div className="stars">
+          {[...Array(10)].map((_, i) => (
+            <div
+              key={i}
+              className="star"
+              style={{ 
+                top: "50%", left: "50%",
+                "--x": `${Math.random()*200-100}px`,
+                "--y": `${Math.random()*200-100}px`
+              }}
+            />
+          ))}
+          <div className="butterfly" style={{ left: "10%", bottom: "10%" }} />
+          <div className="butterfly" style={{ left: "70%", bottom: "15%" }} />
+        </div>
+      )}
+
+      {/* Panel */}
       <div className={`elphi-panel ${open ? 'show' : ''}`}>
         <div className="elphi-header">
           <div className="elphi-avatar">E</div>
@@ -106,10 +127,11 @@ function ElphiChatWidget() {
           </div>
         </div>
 
-        <div className="elphi-messages">
+        {/* Messages */}
+        <div className="elphi-messages" role="log" aria-live="polite">
           {messages.length === 0 && (
             <div className="elphi-empty">
-              Ask me anything! Try: Explain recursion with an example.
+              Ask me anything! Try: “Explain recursion with an example.”
             </div>
           )}
 
@@ -117,10 +139,13 @@ function ElphiChatWidget() {
             <div key={i} className={`elphi-msg ${m.sender}`}>
               <div className="bubble">
                 <ReactMarkdown>{m.text}</ReactMarkdown>
+
+                {/* Actions */}
                 <div className="msg-actions">
                   <button
                     className="icon-btn"
                     onClick={() => copyMessage(m.text)}
+                    title="Copy"
                   >
                     <i className="bi bi-clipboard" />
                   </button>
@@ -128,6 +153,7 @@ function ElphiChatWidget() {
                     <button
                       className="icon-btn"
                       onClick={() => editMessage(i)}
+                      title="Edit"
                     >
                       <i className="bi bi-pencil-square" />
                     </button>
@@ -150,6 +176,7 @@ function ElphiChatWidget() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Input */}
         <div className="elphi-input">
           <textarea
             className="elphi-textarea"
