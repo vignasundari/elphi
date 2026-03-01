@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } }); // 20MB max
 
 /* ================= MONGODB CONNECTION ================= */
-mongoose.connect("mongodb+srv://Amirthaa:elphida03@elphida.1e5pyx4.mongodb.net/?appName=Elphida", {
+mongoose.connect(process.env.MONGO_URI, {
   tls: true,
   tlsAllowInvalidCertificates: true,
 })
@@ -445,6 +445,7 @@ app.delete("/api/notes/:id", async (req, res) => {
 });
 
 /* ================= START SERVER ================= */
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
