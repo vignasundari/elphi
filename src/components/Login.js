@@ -1,18 +1,63 @@
 // src/components/Login.js
-import React, { useEffect, useRef, useState } from 'react'; // Import useState
+import React, { useCallback, useEffect, useRef, useState } from 'react'; // Import useState
 import './Login.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Link, useNavigate } from 'react-router-dom';
+import { getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth';
+import { auth, googleProvider } from '../firebaseConfig';
 
 // Create an Audio object instance outside the component to avoid re-creation
 const bookOpenSound = new Audio('/sounds/book-open.mp3'); // IMPORTANT: Verify this path!
+const getGoogleAuthErrorMessage = (error) => {
+  switch (error?.code) {
+    case "auth/operation-not-allowed":
+      return "Google sign-in is not enabled in Firebase. Enable it in Firebase Console → Authentication → Sign-in method.";
+    case "auth/unauthorized-domain":
+      return "This domain is not authorized in Firebase. Add your app domain in Firebase Console → Authentication → Settings → Authorized domains.";
+    case "auth/network-request-failed":
+      return "Network error while contacting Google. Check your internet connection and try again.";
+    case "auth/popup-blocked":
+      return "Popup was blocked by your browser. Redirecting to Google sign-in...";
+    default:
+      return `Google sign-in failed (${error?.code || "unknown"}). ${error?.message || "Please try again."}`;
+  }
+};
 
 const Login = ({ setIsLoggedIn }) => {
         const [email, setEmail] = useState('');
 const [password, setPassword] = useState('');
+const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 const navigate = useNavigate();
     const sparkleContainerRef = useRef(null);
     const loginFormWrapperRef = useRef(null);
+const persistGoogleSession = useCallback(async (googleUser) => {
+  const user = {
+    name: googleUser.displayName || googleUser.email?.split("@")[0] || "Student",
+    email: googleUser.email,
+    photoURL: googleUser.photoURL || "",
+    authProvider: "google",
+  };
+
+  if (!user.email) {
+    throw new Error("Google sign-in did not return an email address.");
+  }
+
+  localStorage.setItem("isLoggedIn", "true");
+  localStorage.setItem("elphiUser", JSON.stringify(user));
+
+  try {
+    await fetch("http://localhost:5000/api/streak/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email }),
+    });
+  } catch (err) {
+    console.error("Failed to update streak:", err);
+  }
+
+  setIsLoggedIn(true);
+  navigate("/dashboard");
+}, [navigate, setIsLoggedIn]);
    const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -59,6 +104,32 @@ const navigate = useNavigate();
     alert("Server error");
   }
 };
+
+const handleGoogleSignIn = async () => {
+  if (isGoogleLoading) return;
+  setIsGoogleLoading(true);
+
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    await persistGoogleSession(result.user);
+  } catch (error) {
+    if (error?.code === "auth/popup-blocked") {
+      try {
+        alert(getGoogleAuthErrorMessage(error));
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      } catch (redirectError) {
+        console.error("Google redirect login failed:", redirectError);
+        alert(getGoogleAuthErrorMessage(redirectError));
+      }
+    } else if (error?.code !== "auth/popup-closed-by-user") {
+      console.error("Google login failed:", error);
+      alert(getGoogleAuthErrorMessage(error));
+    }
+  } finally {
+    setIsGoogleLoading(false);
+  }
+};
     // New state for dark mode
     const [isDarkMode, setIsDarkMode] = useState(
         () => localStorage.getItem('theme') === 'dark' // Initialize from localStorage
@@ -79,6 +150,22 @@ const navigate = useNavigate();
     const toggleDarkMode = () => {
         setIsDarkMode(prevMode => !prevMode);
     };
+
+    useEffect(() => {
+        const handleRedirectGoogleSignIn = async () => {
+            try {
+                const result = await getRedirectResult(auth);
+                if (result?.user) {
+                    await persistGoogleSession(result.user);
+                }
+            } catch (error) {
+                console.error("Google redirect result error:", error);
+                alert(getGoogleAuthErrorMessage(error));
+            }
+        };
+
+        handleRedirectGoogleSignIn();
+    }, [persistGoogleSession]);
 
     useEffect(() => {
         // Sparkle creation logic (unchanged)
@@ -180,8 +267,13 @@ const navigate = useNavigate();
                             <a href="/forgot" className="d-block text-center mt-3 forgot-password-link">Forgot Password?</a>
 
                             <div className="social-login text-center mt-4">
-                                <button type="button" className="btn btn-light w-100 mb-2 social-button google-button">
-                                    <i className="bi bi-google me-2"></i> Login with Google
+                                <button
+                                  type="button"
+                                  className="btn btn-light w-100 mb-2 social-button google-button"
+                                  onClick={handleGoogleSignIn}
+                                  disabled={isGoogleLoading}
+                                >
+                                    <i className="bi bi-google me-2"></i> {isGoogleLoading ? "Connecting..." : "Continue with Google"}
                                 </button>
                             </div>
                         </form>
