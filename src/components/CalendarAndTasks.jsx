@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaChevronLeft, FaChevronRight, FaCalendarAlt, FaClock } from 'react-icons/fa';
-
-const API_BASE = 'http://localhost:5000';
+import API_BASE from '../config/api';
 
 // ===== Helper: get user email =====
 const getUserEmail = () => {

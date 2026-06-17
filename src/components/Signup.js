@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import './Signup.css'; // We'll create this CSS file next
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate, Link } from "react-router-dom";
+import API_BASE from "../config/api";
 // You might want a different sound for signup, or reuse the book-open one.
 // For now, let's assume a 'register-chime.mp3' or similar, placed in /public/sounds/
 const signupSound = new Audio('/sounds/register-chime.mp3'); // IMPORTANT: Verify this path!
@@ -32,7 +33,7 @@ const handleSubmit = async (e) => {
   }
 
   try {
-    const res = await fetch("http://localhost:5000/signup", {
+    const res = await fetch(`${API_BASE}/signup`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

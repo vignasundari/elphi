@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./profile.css";
-
-const API_BASE = "http://localhost:5000";
+import API_BASE from "../config/api";
 
 const SEMESTERS = [
   { name: 'Semester 1', subjects: ['Core Subject 1A', 'Elective 1B', 'Lab Session 1C'] },

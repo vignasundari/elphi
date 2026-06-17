@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { FaStar } from "react-icons/fa";
+import API_BASE from "../config/api";
 
 const StarRating = ({ isInteractive = false, subject, topic, onRate }) => {
   const [hoverRating, setHoverRating] = useState(0);
@@ -10,7 +11,7 @@ const StarRating = ({ isInteractive = false, subject, topic, onRate }) => {
 
   // 🔹 Load rating info from backend
   useEffect(() => {
-    fetch(`/api/ratings?subject=${subject}&topic=${topic}`)
+    fetch(`${API_BASE}/api/ratings?subject=${subject}&topic=${topic}`)
       .then(res => res.json())
       .then(data => {
         setAverageRating(data.average || 0);
@@ -26,7 +27,7 @@ const StarRating = ({ isInteractive = false, subject, topic, onRate }) => {
     setUserRating(rating);
     setIsRated(true);
 
-    fetch(`/api/ratings`, {
+    fetch(`${API_BASE}/api/ratings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subject, topic, rating }),

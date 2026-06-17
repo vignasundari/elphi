@@ -5,6 +5,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { getRedirectResult, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { auth, googleProvider } from '../firebaseConfig';
+import API_BASE from '../config/api';
 
 // Create an Audio object instance outside the component to avoid re-creation
 const bookOpenSound = new Audio('/sounds/book-open.mp3'); // IMPORTANT: Verify this path!
@@ -46,7 +47,7 @@ const persistGoogleSession = useCallback(async (googleUser) => {
   localStorage.setItem("elphiUser", JSON.stringify(user));
 
   try {
-    await fetch("http://localhost:5000/api/streak/login", {
+    await fetch(`${API_BASE}/api/streak/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: user.email }),
@@ -67,7 +68,7 @@ const persistGoogleSession = useCallback(async (googleUser) => {
   }
 
   try {
-    const res = await fetch("http://localhost:5000/login", {
+    const res = await fetch(`${API_BASE}/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -88,7 +89,7 @@ const persistGoogleSession = useCallback(async (googleUser) => {
 
     // 🔥 Update streak on login
     try {
-      await fetch("http://localhost:5000/api/streak/login", {
+      await fetch(`${API_BASE}/api/streak/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: data.user.email })

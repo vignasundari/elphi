@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import NoteCard from './NoteCard';
-
-const API_BASE = 'http://localhost:5000';
+import API_BASE from '../config/api';
 
 const NotesSection = ({ subject = 'Core Subject 1A' }) => {
   const [notes, setNotes] = useState([]);

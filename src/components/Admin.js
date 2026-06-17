@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import './Admin.css';
+import API_BASE from '../config/api';
 
 const Admin = () => {
   const { darkMode, toggleTheme } = useTheme();
@@ -9,7 +10,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/messages')
+    fetch(`${API_BASE}/api/messages`)
       .then(res => res.json())
       .then(data => {
         setMessages(data);

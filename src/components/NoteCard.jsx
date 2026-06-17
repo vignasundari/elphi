@@ -1,7 +1,6 @@
 import { FaDownload, FaStar, FaFileAlt } from "react-icons/fa";
 import StarRating from "./StarRating";
-
-const API_BASE = "http://localhost:5000";
+import API_BASE from "../config/api";
 
 const styles = {
   downloadButton: {

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FaExpand, FaPlus, FaSignInAlt, FaPaperPlane, FaCopy } from "react-icons/fa";
 import "./StudyRooms.css";
-
-const API_BASE = "http://localhost:5000";
+import API_BASE from "../config/api";
 
 /* Generate a 6-char alphanumeric room code */
 function generateRoomCode() {

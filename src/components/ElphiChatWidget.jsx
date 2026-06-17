@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './ElphiChatWidget.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import ReactMarkdown from 'react-markdown';
+import API_BASE from '../config/api';
 
 function ElphiChatWidget() {
   const [open, setOpen] = useState(false);
@@ -37,7 +38,7 @@ function ElphiChatWidget() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/chat', {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage.text }),
